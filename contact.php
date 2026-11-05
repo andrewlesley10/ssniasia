@@ -88,12 +88,6 @@ function field(string $name): string
     return is_string($value) ? trim($value) : '';
 }
 
-function valid_date(string $value): bool
-{
-    $d = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
-    return $d !== false && $d->format('Y-m-d') === $value;
-}
-
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     if (is_ajax_request()) {
         respond(false, 'Invalid request method.', 405);
@@ -115,65 +109,25 @@ if (!within_rate_limit($_SERVER['REMOTE_ADDR'] ?? 'unknown')) {
 
 $data = [
     'fullName' => field('fullName'),
-    'country' => field('country'),
     'email' => field('email'),
     'phone' => field('phone'),
-    'arrival' => field('arrival'),
-    'departure' => field('departure'),
-    'adults' => field('adults'),
-    'children' => field('children'),
-    'destinations' => field('destinations'),
-    'accommodation' => field('accommodation'),
-    'budget' => field('budget'),
-    'requirements' => field('requirements'),
+    'country' => field('country'),
     'message' => field('message'),
 ];
 
 /* Length caps, so a single POST can't drop a novel into the inbox. */
-$limits = [
-    'fullName' => 120, 'country' => 80, 'email' => 254, 'phone' => 40,
-    'destinations' => 1000, 'accommodation' => 60, 'budget' => 80,
-    'requirements' => 1500, 'message' => 5000,
-];
-
-/* The select offers exactly these — anything else was not chosen on the page. */
-$accommodationOptions = [
-    '', 'Standard (3-star)', 'Superior (4-star)', 'Luxury (5-star)',
-    'Boutique hotels & villas', 'Not sure yet',
-];
+$limits = ['fullName' => 120, 'email' => 254, 'phone' => 40, 'country' => 80, 'message' => 5000];
 
 $errors = [];
 
 if ($data['fullName'] === '') {
     $errors[] = 'Please enter your full name.';
 }
-if ($data['country'] === '') {
-    $errors[] = 'Please enter your country of residence.';
-}
 if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
     $errors[] = 'Please enter a valid email address.';
 }
-foreach (['arrival', 'departure'] as $d) {
-    if ($data[$d] !== '' && !valid_date($data[$d])) {
-        $errors[] = 'Please check your travel dates.';
-        break;
-    }
-}
-if ($data['arrival'] !== '' && $data['departure'] !== '' && $data['departure'] < $data['arrival']) {
-    $errors[] = 'Your departure date must be on or after your arrival date.';
-}
-foreach (['adults' => [1, 99], 'children' => [0, 99]] as $name => [$min, $max]) {
-    if ($data[$name] === '') {
-        continue;
-    }
-    $n = filter_var($data[$name], FILTER_VALIDATE_INT, ['options' => ['min_range' => $min, 'max_range' => $max]]);
-    if ($n === false) {
-        $errors[] = 'Please check the number of travellers.';
-        break;
-    }
-}
-if (!in_array($data['accommodation'], $accommodationOptions, true)) {
-    $errors[] = 'Please choose an accommodation category from the list.';
+if ($data['message'] === '') {
+    $errors[] = 'Please tell us a little about your trip.';
 }
 foreach ($limits as $name => $max) {
     if (mb_strlen($data[$name]) > $max) {
@@ -183,23 +137,15 @@ foreach ($limits as $name => $max) {
 }
 
 if ($errors) {
-    respond(false, implode(' ', array_unique($errors)), 422);
+    respond(false, implode(' ', $errors), 422);
 }
 
 $labels = [
     'fullName' => 'Full name',
-    'country' => 'Country of residence',
     'email' => 'Email',
-    'phone' => 'Contact / WhatsApp',
-    'arrival' => 'Expected arrival',
-    'departure' => 'Expected departure',
-    'adults' => 'Adults',
-    'children' => 'Children',
-    'destinations' => 'Preferred destinations / tour',
-    'accommodation' => 'Accommodation category',
-    'budget' => 'Estimated budget',
-    'requirements' => 'Special requirements',
-    'message' => 'Additional message',
+    'phone' => 'Phone / WhatsApp',
+    'country' => 'Country of residence',
+    'message' => 'Message',
 ];
 
 $body = "New tour enquiry from www.ssniasia.com\n";
@@ -217,7 +163,8 @@ $body .= "\nSubmitted: " . gmdate('Y-m-d H:i') . " UTC\n";
 
 /* Modern PHP already collapses CRLF in the subject, but don't rely on the
    host's PHP version for that — strip it here too. */
-$subject = 'Tour enquiry: ' . header_safe($data['fullName']) . ' (' . header_safe($data['country']) . ')';
+$subject = 'Tour enquiry: ' . header_safe($data['fullName'])
+    . ($data['country'] !== '' ? ' (' . header_safe($data['country']) . ')' : '');
 $subject = '=?UTF-8?B?' . base64_encode(mb_substr($subject, 0, 150)) . '?=';
 
 $headers = [

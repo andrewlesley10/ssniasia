@@ -10,9 +10,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (!form || !statusBox || !submitBtn) return;
 
   var defaultLabel = submitBtn.textContent.trim();
-  var arrival = form.elements.arrival;
-  var departure = form.elements.departure;
-  var destinations = form.elements.destinations;
+  var message = form.elements.message;
 
   /* ---- prefill from links: ?tour=… or ?destination=… ---- */
   try {
@@ -20,22 +18,10 @@ document.addEventListener('DOMContentLoaded', function () {
     var picks = [];
     if (params.get('tour')) picks.push(params.get('tour'));
     if (params.get('destination')) picks.push(params.get('destination'));
-    if (picks.length && destinations && !destinations.value) {
-      destinations.value = picks.join(', ').slice(0, 1000);
+    if (picks.length && message && !message.value) {
+      message.value = ("I'm interested in: " + picks.join(', ') + '.\n\n').slice(0, 1000);
     }
   } catch (e) { /* URLSearchParams unsupported — nothing to prefill */ }
-
-  /* ---- dates: no past arrival, departure not before arrival ---- */
-  if (arrival && departure) {
-    var today = new Date();
-    var iso = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-    arrival.min = iso;
-    departure.min = iso;
-    arrival.addEventListener('change', function () {
-      departure.min = arrival.value || iso;
-      if (departure.value && arrival.value && departure.value < arrival.value) departure.value = '';
-    });
-  }
 
   function showStatus(success, message) {
     statusBox.hidden = false;
@@ -79,12 +65,6 @@ document.addEventListener('DOMContentLoaded', function () {
   form.addEventListener('submit', function (event) {
     event.preventDefault();
     hideStatus();
-
-    if (arrival && departure && arrival.value && departure.value && departure.value < arrival.value) {
-      departure.setCustomValidity('Departure date must be on or after the arrival date.');
-    } else if (departure) {
-      departure.setCustomValidity('');
-    }
 
     if (!form.checkValidity()) {
       Array.prototype.forEach.call(form.elements, function (el) {
