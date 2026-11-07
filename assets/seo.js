@@ -32,7 +32,7 @@
     contactPoint: [{
       '@type': 'ContactPoint',
       telephone: '+94114789644',
-      email: 'info@ssniasia.com',
+      email: 'reservations@ssniasia.com',
       contactType: 'reservations',
       areaServed: 'Worldwide',
       availableLanguage: ['en', 'si', 'ta']

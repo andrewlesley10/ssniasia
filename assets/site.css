@@ -232,7 +232,7 @@ strong { font-weight: 600; }
 .topbar a { color: var(--color-on-band); text-decoration: none; }
 .topbar a:hover { color: var(--color-sky-300); }
 .topbar__sep { color: var(--color-sky); }
-@media (max-width: 720px) { .topbar__addr, .topbar__addr + .topbar__sep { display: none; } }
+@media (max-width: 720px) { .topbar__addr, .topbar__addr + .topbar__sep, .topbar__extra { display: none; } }
 
 .site-nav {
   position: sticky; top: 0; z-index: 100;
